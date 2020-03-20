@@ -1,0 +1,47 @@
+name: temp
+version: '0.1'
+synopsis: Demo Snap App -- Elizibethan Insult Generator
+description: Translation (we hope) of an OpenShift demo project in Java.
+category: Web
+author: Adam James McCullough
+maintainer: merlinfmct87@gmail.com
+license: AllRightsReserved
+dependencies:
+- base >=4 && <5
+- bytestring >=0.9.1 && <0.11
+- lens
+- monad-control >= 1.0 && < 1.1
+- mtl >=2 && <3
+- snap >= 1.0 && < 1.2
+- snap-core >=1.0 && <1.1
+- snap-server >=1.0 && <1.2
+- snaplet-postgresql-simple <= 1.2.0.0
+- text
+- time
+- configurator
+- pretty-show
+- postgresql-simple
+- resource-pool
+
+executables:
+  temp:
+    main: Main.hs
+    source-dirs: src
+    when:
+    - condition: impl(ghc >=6.12.0)
+      then:
+        ghc-options:
+        - -threaded
+        - -Wall
+        - -fwarn-tabs
+        - -funbox-strict-fields
+        - -O2
+        - -fno-warn-unused-do-bind
+      else:
+        ghc-options:
+        - -threaded
+        - -Wall
+        - -fwarn-tabs
+        - -funbox-strict-fields
+        - -O2
+stability: Experimental
