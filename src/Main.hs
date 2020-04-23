@@ -9,33 +9,31 @@ import           Control.Applicative
 import           Control.Lens
 import           Control.Monad.Reader
 import           Control.Monad.State
-import qualified Data.ByteString.Char8                  as B
-import           Data.Char                              (toLower)
-import qualified Data.Configurator                      as C
-import qualified Data.Configurator.Types                as C
+import qualified Data.ByteString.Char8         as B
+import           Data.Char                     (toLower)
+import qualified Data.Configurator             as C
+import qualified Data.Configurator.Types       as C
 import           Data.IORef
-import           Data.Maybe                             (fromMaybe)
-import           Data.Pool                              (createPool)
-import qualified Data.Text                              as T
-import qualified Database.PostgreSQL.Simple             as P
-import qualified Database.PostgreSQL.Simple.Transaction as P
+import           Data.Maybe                    (fromMaybe)
+import           Data.Pool                     (createPool)
+import qualified Data.Text                     as T
+import qualified Database.PostgreSQL.Simple    as P
+-- import qualified Database.PostgreSQL.Simple.Transaction as P
 import           Snap
 import           Snap.Snaplet.Heist
 import           Snap.Snaplet.PostgresqlSimple
-import           System.Environment                     (getEnv)
-import           Text.Show.Pretty                       (getDataDir)
+import           System.Environment            (getEnv)
+import           Text.Show.Pretty              (getDataDir)
 
 data Foo = Foo
 
 data Bar = Bar
 
 fooInit :: SnapletInit b Foo
-fooInit = makeSnaplet "foo" "Foo snaplet" Nothing $ do
-    return Foo
+fooInit = makeSnaplet "foo" "Foo snaplet" Nothing $ return Foo
 
 barInit :: SnapletLens b Foo -> SnapletInit b Bar
-barInit _h = makeSnaplet "bar" "Bar snaplet" Nothing $ do
-    return Bar
+barInit _h = makeSnaplet "bar" "Bar snaplet" Nothing $ return Bar
 
 data App = App
     { _heist       :: Snaplet (Heist App)
@@ -71,11 +69,11 @@ getPGConn = liftIO $ do
   return $ PGEnvConfig eUsr ePwd eHst ePrt eDBN
 
 makeConnStr :: PGEnvConfig -> String
-makeConnStr envConf = "user='" ++ (view user envConf) ++
-  "' pass='" ++ (view pswd envConf) ++
-  "' host='" ++ (view host envConf) ++
-  "' port='" ++ (view port envConf) ++
-  "' database='" ++ (view dbName envConf)
+makeConnStr envConf = "user='" ++ view user envConf ++
+  "' pass='" ++ view pswd envConf ++
+  "' host='" ++ view host envConf ++
+  "' port='" ++ view port envConf ++
+  "' database='" ++ view dbName envConf
 
 
 description :: T.Text
@@ -83,7 +81,7 @@ description = "PostgreSQL abstraction"
 
 
 datadir :: Maybe (IO FilePath)
-datadir = Just $ liftM (<>"/resources/db") getDataDir
+datadir = Just $ fmap (<>"/resources/db") getDataDir
 
 makePGConfig :: MonadIO m => C.Config -> m PGSConfig
 makePGConfig config = liftIO $ do
@@ -94,7 +92,7 @@ makePGConfig config = liftIO $ do
   let connstr = B.pack $ makeConnStr envConf in
     return $ PGSConfig connstr stripes idle resources
 
--- myPgsInit :: Snap.SnapletInit b Postgres
+myPgsInit :: Snap.SnapletInit b Postgres
 myPgsInit = makeSnaplet "postgresql-simple" description datadir $ do
   config <- makePGConfig =<< getSnapletUserConfig
   initHelper config
@@ -119,18 +117,16 @@ insultQuery = "SELECT a.string AS first b.string AS second c.string AS noun from
 
 insultHandler :: Handler App App ()
 insultHandler = do
-  results <- query_ $ insultQuery
+  results <- query_ insultQuery
   let result = head results
       (first,second,noun) :: (String, String, String) = result
-      article = case (isVowel $ head first) of
-        True  -> "an"
-        False -> "a" in
+      article = if isVowel $ head first then "an" else "a" in
         writeText $ T.pack $ "Thout art " ++ article ++ " " ++ first ++ " " ++ second ++ " " ++ noun ++ "!"
 
 appInit :: SnapletInit App App
 appInit = makeSnaplet "myapp" "My example application" Nothing $ do
   hs <- nestSnaplet "heist" heist $ heistInit "templates"
-  fs <- nestSnaplet "foo" foo $ fooInit
+  fs <- nestSnaplet "foo" foo fooInit
   d  <- nestSnaplet "db" db myPgsInit
   bs <- nestSnaplet "" bar $ nameSnaplet "newname" $ barInit foo
   addRoutes [ ("hello", writeText "hello world")
