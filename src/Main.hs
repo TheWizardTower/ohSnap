@@ -18,7 +18,6 @@ import           Data.Maybe                    (fromMaybe)
 import           Data.Pool                     (createPool)
 import qualified Data.Text                     as T
 import qualified Database.PostgreSQL.Simple    as P
--- import qualified Database.PostgreSQL.Simple.Transaction as P
 import           Snap
 import           Snap.Snaplet.Heist
 import           Snap.Snaplet.PostgresqlSimple
